@@ -26,6 +26,7 @@ namespace Nodify
         static CircuitConnection()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(CircuitConnection), new FrameworkPropertyMetadata(typeof(CircuitConnection)));
+            NodifyEditor.CuttingConnectionTypes.Add(typeof(CircuitConnection));
         }
 
         protected override ((Point ArrowStartSource, Point ArrowStartTarget), (Point ArrowEndSource, Point ArrowEndTarget)) DrawLineGeometry(StreamGeometryContext context, Point source, Point target)
@@ -33,9 +34,18 @@ namespace Nodify
             var (p0, p1, p2) = GetLinePoints(source, target);
 
             context.BeginFigure(source, false, false);
-            context.LineTo(p0, true, true);
-            context.LineTo(p1, true, true);
-            context.LineTo(p2, true, true);
+            if (CornerRadius > 0)
+            {
+                AddSmoothCorner(context, source, p0, p1, CornerRadius);
+                AddSmoothCorner(context, p0, p1, p2, CornerRadius);
+                AddSmoothCorner(context, p1, p2, target, CornerRadius);
+            }
+            else
+            {
+                context.LineTo(p0, true, true);
+                context.LineTo(p1, true, true);
+                context.LineTo(p2, true, true);
+            }
             context.LineTo(target, true, true);
 
             if (Spacing < 1d)

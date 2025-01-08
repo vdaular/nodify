@@ -1,15 +1,26 @@
-﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using Nodify.Interactivity;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
 
 namespace Nodify.Playground
 {
     public class PlaygroundSettings : ObservableObject
     {
-        public IReadOnlyCollection<ISettingViewModel> Settings { get; }
+        private readonly IReadOnlyCollection<ISettingViewModel> _settings;
+        public IEnumerable<ISettingViewModel> Settings => FilterAndSort(_settings);
+
+        private string? _searchText;
+        public string? SearchText
+        {
+            get => _searchText;
+            set => SetProperty(ref _searchText, value)
+                .Then(() => OnPropertyChanged(nameof(Settings)));
+        }
 
         private PlaygroundSettings()
         {
-            Settings = new ObservableCollection<ISettingViewModel>()
+            _settings = new List<ISettingViewModel>()
             {
                 new ProxySettingViewModel<EditorGesturesMappings>(
                     () => Instance.EditorGesturesMappings,
@@ -19,6 +30,26 @@ namespace Nodify.Playground
                     () => Instance.EditorInputMode,
                     val => Instance.EditorInputMode = val,
                     "Editor input mode"),
+                new ProxySettingViewModel<bool>(
+                    () => Instance.ShowMinimap,
+                    val => Instance.ShowMinimap = val,
+                    "Show minimap",
+                    "Set Enable nodes dragging optimization to false for realtime updates"),
+                new ProxySettingViewModel<bool>(
+                    () => Instance.DisableMinimapControls,
+                    val => Instance.DisableMinimapControls = val,
+                    "Disable minimap controls",
+                    "Whether the minimap can move and zoom the viewport"),
+                new ProxySettingViewModel<bool>(
+                    () => Instance.ResizeToViewport,
+                    val => Instance.ResizeToViewport = val,
+                    "Minimap resize to viewport",
+                    "Whether the minimap should resized to also display the viewport"),
+                new ProxySettingViewModel<PointEditor>(
+                    () => Instance.MinimapMaxViewportOffset,
+                    val => Instance.MinimapMaxViewportOffset = val,
+                    "Minimap max viewport offset",
+                    "The max position from the items extent that the viewport can move to"),
                 new ProxySettingViewModel<bool>(
                     () => Instance.ShowGridLines,
                     val => Instance.ShowGridLines = val,
@@ -58,6 +89,21 @@ namespace Nodify.Playground
             };
         }
 
+        public IEnumerable<ISettingViewModel> FilterAndSort(IReadOnlyCollection<ISettingViewModel> settings)
+        {
+            if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                return settings;
+            }
+
+            string searchText = SearchText!.ToLowerInvariant();
+
+            var matchingValues = settings.Where(s => s.Name.ToLowerInvariant().Contains(searchText) || (s.Description?.ToLowerInvariant()?.Contains(searchText) ?? false));
+            var sortedValues = matchingValues.OrderByDescending(s => s.Name.ToLowerInvariant().Contains(searchText));
+
+            return sortedValues;
+        }
+
         public static PlaygroundSettings Instance { get; } = new PlaygroundSettings();
 
         private EditorGesturesMappings _editorGesturesMappings;
@@ -74,6 +120,34 @@ namespace Nodify.Playground
             get => _editorInputMode;
             set => SetProperty(ref _editorInputMode, value)
                 .Then(() => EditorGestures.Mappings.Apply(value));
+        }
+
+        private bool _showMinimap = true;
+        public bool ShowMinimap
+        {
+            get => _showMinimap;
+            set => SetProperty(ref _showMinimap, value);
+        }
+
+        private bool _disableMinimapControls = false;
+        public bool DisableMinimapControls
+        {
+            get => _disableMinimapControls;
+            set => SetProperty(ref _disableMinimapControls, value);
+        }
+
+        private bool _resizeToViewport = false;
+        public bool ResizeToViewport
+        {
+            get => _resizeToViewport;
+            set => SetProperty(ref _resizeToViewport, value);
+        }
+
+        private PointEditor _minimapViewportOffset = new Size(2000, 2000);
+        public PointEditor MinimapMaxViewportOffset
+        {
+            get => _minimapViewportOffset;
+            set => SetProperty(ref _minimapViewportOffset, value);
         }
 
         private bool _shouldConnectNodes = true;
