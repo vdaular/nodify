@@ -1,4 +1,5 @@
-﻿using System.Windows.Input;
+﻿using Nodify.Interactivity;
+using System.Windows.Input;
 
 namespace Nodify.Playground
 {
@@ -6,7 +7,8 @@ namespace Nodify.Playground
     {
         Default,
         PanOnly,
-        SelectOnly
+        SelectOnly,
+        CutOnly
     }
 
     public enum EditorGesturesMappings
@@ -24,15 +26,25 @@ namespace Nodify.Playground
             switch (inputMode)
             {
                 case EditorInputMode.PanOnly:
-                    mappings.Editor.Selection.Apply(EditorGestures.SelectionGestures.None);
-                    mappings.ItemContainer.Selection.Apply(EditorGestures.SelectionGestures.None);
-                    mappings.ItemContainer.Drag.Value = MultiGesture.None;
-                    mappings.Connector.Connect.Value = MultiGesture.None;
+                    mappings.Editor.Selection.Unbind();
+                    mappings.Editor.Cutting.Unbind();
+                    mappings.ItemContainer.Selection.Unbind();
+                    mappings.ItemContainer.Drag.Unbind();
+                    mappings.Connector.Connect.Unbind();
                     break;
                 case EditorInputMode.SelectOnly:
-                    mappings.Editor.Pan.Value = MultiGesture.None;
-                    mappings.ItemContainer.Drag.Value = MultiGesture.None;
-                    mappings.Connector.Connect.Value = MultiGesture.None;
+                    mappings.Editor.Pan.Unbind();
+                    mappings.Editor.Cutting.Unbind();
+                    mappings.ItemContainer.Drag.Unbind();
+                    mappings.Connector.Connect.Unbind();
+                    break;
+                case EditorInputMode.CutOnly:
+                    mappings.Editor.Cutting.Value = new Interactivity.MouseGesture(MouseAction.LeftClick);
+                    mappings.Editor.Selection.Unbind();
+                    mappings.Editor.Pan.Unbind();
+                    mappings.ItemContainer.Selection.Unbind();
+                    mappings.ItemContainer.Drag.Unbind();
+                    mappings.Connector.Connect.Unbind();
                     break;
                 case EditorInputMode.Default:
                     break;
@@ -59,7 +71,7 @@ namespace Nodify.Playground
     {
         public CustomGesturesMappings()
         {
-            Editor.Pan.Value = new AnyGesture(new MouseGesture(MouseAction.LeftClick), new MouseGesture(MouseAction.MiddleClick));
+            Editor.Pan.Value = new AnyGesture(new Interactivity.MouseGesture(MouseAction.LeftClick), new Interactivity.MouseGesture(MouseAction.MiddleClick));
             Editor.ZoomModifierKey = ModifierKeys.Control;
             Editor.Selection.Apply(new SelectionGestures(MouseAction.RightClick));
             // comment to drag with right click - we copy the default gestures of the item container which uses left click for selection

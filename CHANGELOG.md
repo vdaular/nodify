@@ -4,6 +4,125 @@
 
 > - Breaking Changes:
 > - Features:
+> - Bugfixes:
+
+#### **Version 7.0.1**
+
+> - Bugfixes:
+>	- Fixed an issue where connections would not gain focus when selected, which could prevent editor keybindings from functioning in certain scenarios
+>	- Resolved an issue where selecting a node did not deselect connections and vice versa
+>	- Fixed a bug preventing ItemContainers from being selected when the mouse could not be captured
+>	- Fixed an issue with key detection in Japanese IME environments, causing issues with the MouseGesture
+
+#### **Version 7.0.0**
+
+> - Breaking Changes:
+>	- Made the setter of NodifyEditor.IsPanning private
+>	- Made SelectionHelper internal
+>	- Renamed HandleRightClickAfterPanningThreshold to MouseActionSuppressionThreshold in NodifyEditor
+>	- Renamed StartCutting to BeginCutting in NodifyEditor
+>	- Renamed Connector.EnableStickyConnections to ConnectorState.EnabledToggledConnectingMode
+>	- Renamed PushItems to UpdatePushedArea and StartPushingItems to BeginPushingItems in NodifyEditor
+>	- Renamed UnselectAllConnection to UnselectAllConnections in NodifyEditor
+>	- Removed DragStarted, DragDelta and DragCompleted routed events from ItemContainer
+>	- Replaced the System.Windows.Input.MouseGesture with Nodify.Interactivity.MouseGesture for default EditorGesture mappings
+>	- Removed State, GetInitialState, PushState, PopState and PopAllStates from NodifyEditor and ItemContainer
+>	- Replaced EditorState and ContainerState with InputElementState
+>	- Moved AllowCuttingCancellation from CuttingLine to NodifyEditor
+>	- Moved AllowDraggingCancellation from ItemContainer to NodifyEditor
+>	- Moved EditorGestures under the Nodify.Interactivity namespace
+>	- Moved editor events under the Nodify.Events namespace
+> - Features:
+>	- Added BeginPanning, UpdatePanning, EndPanning, CancelPanning and AllowPanningCancellation to NodifyEditor and Minimap
+>	- Added MouseLocation, ZoomAtPosition and GetLocationInsideMinimap to Minimap
+>	- Added UpdateCuttingLine to NodifyEditor
+>	- Added Select, BeginSelecting, UpdateSelection, EndSelecting, CancelSelecting and AllowSelectionCancellation to NodifyEditor
+>	- Added IsDragging, BeginDragging, UpdateDragging, EndDragging and CancelDragging to NodifyEditor
+>	- Added AlignSelection and AlignContainers methods to NodifyEditor
+>	- Added LockSelection and UnlockSelection methods to NodifyEditor and EditorCommands
+>	- Added ItemsMoved routed event to NodifyEditor
+>	- Added HasCustomContextMenu dependency property to NodifyEditor, ItemContainer, Connector and BaseConnection
+>	- Added Select, BeginDragging, UpdateDragging, EndDragging and CancelDragging to ItemContainer
+>	- Added PreserveSelectionOnRightClick configuration field to ItemContainer
+>	- Added BeginConnecting, UpdatePendingConnection, EndConnecting, CancelConnecting and RemoveConnections methods to Connector
+>	- Added FindTargetConnector and FindConnectionTarget methods to Connector
+>	- Added a custom MouseGesture with support for key combinations
+>	- Added InputProcessor to NodifyEditor, ItemContainer, Connector, BaseConnection and Minimap, enabling the extension of controls with custom states
+>	- Added DragState to simplify creating click-and-drag interactions, with support for initiating and completing them using the keyboard
+>	- Added InputElementStateStack, InputElementStateStack.DragState and InputElementStateStack.InputElementState to manage transitions between states in UI elements
+>	- Added InputProcessor.Shared to enable the addition of global input handlers
+>	- Move the viewport to the mouse position when zooming on the Minimap if ResizeToViewport is false
+>	- Added SplitAtLocation and Remove methods to BaseConnection
+>	- Added AllowPanningWhileSelecting, AllowPanningWhileCutting and AllowPanningWhilePushingItems to EditorState
+>	- Added AllowZoomingWhilePanning, AllowZoomingWhileSelecting, AllowZoomingWhileCutting and AllowZoomingWhilePushingItems to EditorState
+>	- Added EnableToggledSelectingMode, EnableToggledPanningMode, EnableToggledPushingItemsMode and EnableToggledCuttingMode to EditorState
+>	- Added MinimapState.EnableToggledPanningMode
+>	- Added ContainerState.EnableToggledDraggingMode
+>	- Added Unbind to InputGestureRef and EditorGestures.SelectionGestures
+>	- Added EnableHitTesting to PendingConnection
+> - Bugfixes:
+>	- Fixed an issue where the ItemContainer was selected by releasing the mouse button on it, even when the mouse was not captured
+>	- Fixed an issue where the ItemContainer could open its context menu even when it was not selected
+>	- Fixed an issue where the Home button caused the editor to fail to display items when contained within a ScrollViewer
+>	- Fixed an issue where connector optimization did not work when SelectedItems was not data-bound
+>	- Fixed EditorCommands.Align to perform a single arrange invalidation instead of one for each aligned container
+>	- Fixed an issue where controls would capture the mouse unnecessarily; they now capture it only in response to a defined gesture
+>	- Fixed an issue where the minimap could update the viewport without having the mouse captured
+>	- Fixed ItemContainer.Select and NodifyEditor.SelectArea to clear the existing selection and select the containers within the same transaction
+>	- Fixed an issue where editor interactions failed to cancel upon losing mouse capture
+>	- Fixed an issue where selecting a new connection would not clear the previous selection within the same transaction
+	
+#### **Version 6.6.0**
+
+> - Features:
+>	- Added InputGroupStyle and OutputGroupStyle to Node
+>	- Added PanWithMouseWheel, PanHorizontalModifierKey and PanVerticalModifierKey to EditorGestures.Editor
+>	- Added CornerRadius dependency property to LineConnection, CircuitConnection and StepConnection
+>	- Added EditorGestures.Editor.PushItems gesture used to start pushing ItemContainers vertically or horizontally
+>	- Added PushedAreaStyle, PushedAreaOrientation and IsPushingItems dependency properties to NodifyEditor
+>	- Added NodifyEditor.SnapToGrid utility function
+> - Bugfixes:
+>	- Fixed ItemContainer.BorderBrush and ItemContainer.SelectedBrush not reacting to theme changes
+
+#### **Version 6.5.0**
+
+> - Features:
+>	- Added SelectedConnection, SelectedConnections, CanSelectMultipleConnections and CanSelectMultipleItems dependency properties to NodifyEditor
+>	- Added IsSelected and IsSelectable attached dependency properties to BaseConnection
+>	- Added PrioritizeBaseConnectionForSelection static field to BaseConnection
+>	- Added EditorGestures.Connection.Selection
+>	- Added support for ScrollViewer in NodifyEditor (implements IScrollInfo)
+>	- Added NodifyEditor.ScrollIncrement dependency property
+
+#### **Version 6.4.0**
+
+> - Features:
+>	- Added OutlineBrush and OutlineThickness dependency properties to BaseConnection to support increasing the selection area without increasing the stroke thickness
+>	- Added IsAnimatingDirectionalArrows and DirectionalArrowsAnimationDuration dependency properties to BaseConnection to support controlling the animation from XAML
+
+#### **Version 6.3.0**
+
+> - Features:
+>	- Added a CuttingLine control that removes intersecting connections
+>	- Added CuttingLineStyle, CuttingStartedCommand, CuttingCompletedCommand, IsCutting, EnableCuttingLinePreview and CuttingConnectionTypes to NodifyEditor
+>	- Added EditorGestures.Editor.Cutting and EditorGestures.Editor.CancelAction
+> - Bugfixes:
+>	- Fixed connection styles not inheriting from the BaseConnection style
+
+#### **Version 6.2.0**
+
+> - Features:
+>	- Added a Minimap control and EditorGestures.Minimap
+>	- Added ContentContainerStyle, HeaderContainerStyle and FooterContainerStyle dependency properties to Node
+>	- Added BringIntoView that takes a Rect parameter to NodifyEditor
+>	- Added the NodifyEditor's DataContext as the parameter of the ItemsSelectStartedCommand, ItemsSelectCompletedCommand, ItemsDragStartedCommand and ItemsDragCompletedCommand commands
+> - Bugfixes:
+>	- Fixed hover effect and padding of NodeInput and NodeOutput for vertical orientation
+>	- Fixed ItemContainers being selected sometimes when double clicking the canvas
+
+#### **Version 6.1.0**
+
+> - Features:
 >	- Added new built-in connection type: StepConnection
 > - Bugfixes:
 >	- Fixed CircuitConnection directional arrows not interpolating correctly

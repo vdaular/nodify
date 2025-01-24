@@ -1,3 +1,5 @@
+using Nodify.Events;
+using Nodify.Interactivity;
 using System;
 using System.ComponentModel;
 using System.Globalization;
@@ -122,12 +124,16 @@ namespace Nodify
         public static readonly DependencyProperty DirectionProperty = DependencyProperty.Register(nameof(Direction), typeof(ConnectionDirection), typeof(BaseConnection), new FrameworkPropertyMetadata(default(ConnectionDirection), FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty DirectionalArrowsCountProperty = DependencyProperty.Register(nameof(DirectionalArrowsCount), typeof(uint), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.UInt0, FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty DirectionalArrowsOffsetProperty = DependencyProperty.Register(nameof(DirectionalArrowsOffset), typeof(double), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.Double0, FrameworkPropertyMetadataOptions.AffectsRender));
+        public static readonly DependencyProperty IsAnimatingDirectionalArrowsProperty = DependencyProperty.Register(nameof(IsAnimatingDirectionalArrows), typeof(bool), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.False, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnIsAnimatingDirectionalArrowsChanged)));
+        public static readonly DependencyProperty DirectionalArrowsAnimationDurationProperty = DependencyProperty.Register(nameof(DirectionalArrowsAnimationDuration), typeof(double), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.Double2, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnDirectionalArrowsAnimationDurationChanged)));
         public static readonly DependencyProperty SpacingProperty = DependencyProperty.Register(nameof(Spacing), typeof(double), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.Double0, FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty ArrowSizeProperty = DependencyProperty.Register(nameof(ArrowSize), typeof(Size), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.ArrowSize, FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty ArrowEndsProperty = DependencyProperty.Register(nameof(ArrowEnds), typeof(ArrowHeadEnds), typeof(BaseConnection), new FrameworkPropertyMetadata(ArrowHeadEnds.End, FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty ArrowShapeProperty = DependencyProperty.Register(nameof(ArrowShape), typeof(ArrowHeadShape), typeof(BaseConnection), new FrameworkPropertyMetadata(ArrowHeadShape.Arrowhead, FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty SplitCommandProperty = DependencyProperty.Register(nameof(SplitCommand), typeof(ICommand), typeof(BaseConnection));
         public static readonly DependencyProperty DisconnectCommandProperty = Connector.DisconnectCommandProperty.AddOwner(typeof(BaseConnection));
+        public static readonly DependencyProperty OutlineThicknessProperty = DependencyProperty.Register(nameof(OutlineThickness), typeof(double), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.Double5, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnOutlinePenChanged)));
+        public static readonly DependencyProperty OutlineBrushProperty = DependencyProperty.Register(nameof(OutlineBrush), typeof(Brush), typeof(BaseConnection), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnOutlinePenChanged)));
         public static readonly DependencyProperty ForegroundProperty = TextBlock.ForegroundProperty.AddOwner(typeof(BaseConnection));
         public static readonly DependencyProperty TextProperty = TextBlock.TextProperty.AddOwner(typeof(BaseConnection), new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty FontSizeProperty = TextElement.FontSizeProperty.AddOwner(typeof(BaseConnection));
@@ -135,6 +141,58 @@ namespace Nodify
         public static readonly DependencyProperty FontWeightProperty = TextElement.FontWeightProperty.AddOwner(typeof(BaseConnection));
         public static readonly DependencyProperty FontStyleProperty = TextElement.FontStyleProperty.AddOwner(typeof(BaseConnection));
         public static readonly DependencyProperty FontStretchProperty = TextElement.FontStretchProperty.AddOwner(typeof(BaseConnection));
+
+        public static readonly DependencyProperty IsSelectableProperty = DependencyProperty.RegisterAttached("IsSelectable", typeof(bool), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.False));
+        public static readonly DependencyProperty IsSelectedProperty = DependencyProperty.RegisterAttached("IsSelected", typeof(bool), typeof(BaseConnection), new FrameworkPropertyMetadata(BoxValue.False, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIsSelectedChanged));
+        public static readonly DependencyProperty HasCustomContextMenuProperty = NodifyEditor.HasCustomContextMenuProperty.AddOwner(typeof(BaseConnection));
+
+        private static void OnIsSelectedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var container = d is BaseConnection conn ? conn.Container : ((UIElement)d).GetParentOfType<ConnectionContainer>();
+            if (container != null)
+            {
+                container.IsSelected = (bool)e.NewValue;
+            }
+        }
+
+        public static bool GetIsSelectable(UIElement elem)
+            => (bool)elem.GetValue(IsSelectableProperty);
+
+        public static void SetIsSelectable(UIElement elem, bool value)
+            => elem.SetValue(IsSelectableProperty, value);
+
+        public static bool GetIsSelected(UIElement elem)
+            => (bool)elem.GetValue(IsSelectedProperty);
+
+        public static void SetIsSelected(UIElement? elem, bool value)
+            => elem?.SetValue(IsSelectedProperty, value);
+
+        private static void OnIsAnimatingDirectionalArrowsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var con = (BaseConnection)d;
+            if (e.NewValue is true)
+            {
+                con.StartAnimation(con.DirectionalArrowsAnimationDuration);
+            }
+            else
+            {
+                con.StopAnimation();
+            }
+        }
+
+        private static void OnDirectionalArrowsAnimationDurationChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var con = (BaseConnection)d;
+            if (con.IsAnimatingDirectionalArrows)
+            {
+                con.StartAnimation((double)e.NewValue);
+            }
+        }
+
+        private static void OnOutlinePenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((BaseConnection)d)._outlinePen = null;
+        }
 
         /// <summary>
         /// Gets or sets the start point of this connection.
@@ -236,6 +294,24 @@ namespace Nodify
         }
 
         /// <summary>
+        /// Gets or sets whether the directional arrows should be flowing through the connection wire.
+        /// </summary>
+        public bool IsAnimatingDirectionalArrows
+        {
+            get => (bool)GetValue(IsAnimatingDirectionalArrowsProperty);
+            set => SetValue(IsAnimatingDirectionalArrowsProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the duration in seconds of a directional arrow flowing from <see cref="Source"/> to <see cref="Target"/>.
+        /// </summary>
+        public double DirectionalArrowsAnimationDuration
+        {
+            get => (double)GetValue(DirectionalArrowsAnimationDurationProperty);
+            set => SetValue(DirectionalArrowsAnimationDurationProperty, value);
+        }
+
+        /// <summary>
         /// Gets or sets the arrowhead ends.
         /// </summary>
         public ArrowHeadEnds ArrowEnds
@@ -272,7 +348,7 @@ namespace Nodify
         }
 
         /// <summary>
-        /// Splits the connection. Triggered by <see cref="EditorGestures.Connection.Split"/> gesture.
+        /// Splits the connection. Triggered by <see cref="EditorGestures.ConnectionGestures.Split"/> gesture.
         /// Parameter is the location where the splitting ocurred.
         /// </summary>
         public ICommand? SplitCommand
@@ -282,13 +358,31 @@ namespace Nodify
         }
 
         /// <summary>
-        /// Removes this connection. Triggered by <see cref="EditorGestures.Connection.Disconnect"/> gesture.
+        /// Removes this connection. Triggered by <see cref="EditorGestures.ConnectionGestures.Disconnect"/> gesture.
         /// Parameter is the location where the disconnect ocurred.
         /// </summary>
         public ICommand? DisconnectCommand
         {
             get => (ICommand?)GetValue(DisconnectCommandProperty);
             set => SetValue(DisconnectCommandProperty, value);
+        }
+
+        /// <summary>
+        /// The thickness of the outline.
+        /// </summary>
+        public double OutlineThickness
+        {
+            get => (double)GetValue(OutlineThicknessProperty);
+            set => SetValue(OutlineThicknessProperty, value);
+        }
+
+        /// <summary>
+        /// The brush used to render the outline.
+        /// </summary>
+        public Brush? OutlineBrush
+        {
+            get => (Brush?)GetValue(OutlineBrushProperty);
+            set => SetValue(OutlineBrushProperty, value);
         }
 
         /// <summary>
@@ -345,6 +439,21 @@ namespace Nodify
             set => SetValue(FontStretchProperty, value);
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the connection uses a custom context menu.
+        /// </summary>
+        /// <remarks>When set to true, the connection handles the right-click event for specific interactions.</remarks>
+        public bool HasCustomContextMenu
+        {
+            get => (bool)GetValue(HasCustomContextMenuProperty);
+            set => SetValue(HasCustomContextMenuProperty, value);
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the connection has a context menu.
+        /// </summary>
+        public bool HasContextMenu => ContextMenu != null || HasCustomContextMenu;
+
         #endregion
 
         #region Routed Events
@@ -352,14 +461,14 @@ namespace Nodify
         public static readonly RoutedEvent DisconnectEvent = EventManager.RegisterRoutedEvent(nameof(Disconnect), RoutingStrategy.Bubble, typeof(ConnectionEventHandler), typeof(BaseConnection));
         public static readonly RoutedEvent SplitEvent = EventManager.RegisterRoutedEvent(nameof(Split), RoutingStrategy.Bubble, typeof(ConnectionEventHandler), typeof(BaseConnection));
 
-        /// <summary>Triggered by the <see cref="EditorGestures.Connection.Disconnect"/> gesture.</summary>
+        /// <summary>Triggered by the <see cref="EditorGestures.ConnectionGestures.Disconnect"/> gesture.</summary>
         public event ConnectionEventHandler Disconnect
         {
             add => AddHandler(DisconnectEvent, value);
             remove => RemoveHandler(DisconnectEvent, value);
         }
 
-        /// <summary>Triggered by the <see cref="EditorGestures.Connection.Split"/> gesture.</summary>
+        /// <summary>Triggered by the <see cref="EditorGestures.ConnectionGestures.Split"/> gesture.</summary>
         public event ConnectionEventHandler Split
         {
             add => AddHandler(SplitEvent, value);
@@ -369,14 +478,28 @@ namespace Nodify
         #endregion
 
         /// <summary>
+        /// Whether to prioritize controls of type <see cref="BaseConnection"/> inside custom connections (connection wrappers) 
+        /// when setting the <see cref="IsSelectableProperty"/> and <see cref="IsSelectedProperty"/> attached properties.
+        /// </summary>
+        /// <remarks>
+        /// Will fallback to the first <see cref="UIElement"/> if no <see cref="BaseConnection"/> is found or the value is false.
+        /// </remarks>
+        public static bool PrioritizeBaseConnectionForSelection { get; set; } = true;
+
+        /// <summary>
         /// Gets a vector that has its coordinates set to 0.
         /// </summary>
         protected static readonly Vector ZeroVector = new Vector(0d, 0d);
+
+        private Pen? _outlinePen;
 
         private readonly StreamGeometry _geometry = new StreamGeometry
         {
             FillRule = FillRule.EvenOdd
         };
+
+        private ConnectionContainer? _container;
+        private ConnectionContainer? Container => _container ??= this.GetParentOfType<ConnectionContainer>();
 
         protected override Geometry DefiningGeometry
         {
@@ -417,6 +540,13 @@ namespace Nodify
                 return _geometry;
             }
         }
+
+        protected BaseConnection()
+        {
+            InputProcessor.AddSharedHandlers(this);
+        }
+
+        #region Drawing
 
         protected abstract ((Point ArrowStartSource, Point ArrowStartTarget), (Point ArrowEndSource, Point ArrowEndTarget)) DrawLineGeometry(StreamGeometryContext context, Point source, Point target);
 
@@ -651,14 +781,14 @@ namespace Nodify
             return new Point((p0.X + p1.X - text.Width) / 2, (p0.Y + p1.Y - text.Height) / 2);
         }
 
+        #endregion
+
         /// <summary>Starts animating the directional arrows.</summary>
         /// <param name="duration">The duration for moving an arrowhead from <see cref="Source"/> to <see cref="Target"/>.</param>
         public void StartAnimation(double duration = 1.5d)
         {
-            if (DirectionalArrowsCount > 0)
-            {
-                this.StartLoopingAnimation(DirectionalArrowsOffsetProperty, DirectionalArrowsOffset + 1d, duration);
-            }
+            StopAnimation();
+            this.StartLoopingAnimation(DirectionalArrowsOffsetProperty, DirectionalArrowsOffset + 1d, duration);
         }
 
         /// <summary>Stops the animation started by <see cref="StartAnimation(double)"/></summary>
@@ -667,67 +797,118 @@ namespace Nodify
             this.CancelAnimation(DirectionalArrowsOffsetProperty);
         }
 
+        #region Gesture Handling
+
+        private InputProcessor InputProcessor { get; } = new InputProcessor();
+
+        /// <inheritdoc />
         protected override void OnMouseDown(MouseButtonEventArgs e)
-        {
-            Focus();
+            => InputProcessor.ProcessEvent(e);
 
-            this.CaptureMouseSafe();
-
-            EditorGestures.ConnectionGestures gestures = EditorGestures.Mappings.Connection;
-            if (gestures.Split.Matches(e.Source, e))
-            {
-                Point splitLocation = e.GetPosition(this);
-                object? connection = DataContext;
-                var args = new ConnectionEventArgs(connection)
-                {
-                    RoutedEvent = SplitEvent,
-                    SplitLocation = splitLocation,
-                    Source = this
-                };
-
-                RaiseEvent(args);
-
-                // Raise SplitCommand if SplitEvent is not handled
-                if (!args.Handled && (SplitCommand?.CanExecute(splitLocation) ?? false))
-                {
-                    SplitCommand.Execute(splitLocation);
-                }
-
-                e.Handled = true;
-            }
-            else if (gestures.Disconnect.Matches(e.Source, e))
-            {
-                Point splitLocation = e.GetPosition(this);
-                object? connection = DataContext;
-                var args = new ConnectionEventArgs(connection)
-                {
-                    RoutedEvent = DisconnectEvent,
-                    SplitLocation = splitLocation,
-                    Source = this
-                };
-
-                RaiseEvent(args);
-
-                // Raise DisconnectCommand if DisconnectEvent is not handled
-                if (!args.Handled && (DisconnectCommand?.CanExecute(splitLocation) ?? false))
-                {
-                    DisconnectCommand.Execute(splitLocation);
-                }
-
-                e.Handled = true;
-            }
-        }
-
+        /// <inheritdoc />
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
-            if (IsMouseCaptured)
+            InputProcessor.ProcessEvent(e);
+
+            // Release the mouse capture if all the mouse buttons are released
+            if (!InputProcessor.RequiresInputCapture && IsMouseCaptured && e.RightButton == MouseButtonState.Released && e.LeftButton == MouseButtonState.Released && e.MiddleButton == MouseButtonState.Released)
             {
                 ReleaseMouseCapture();
             }
         }
 
+        /// <inheritdoc />
+        protected override void OnMouseMove(MouseEventArgs e)
+            => InputProcessor.ProcessEvent(e);
+
+        /// <inheritdoc />
+        protected override void OnMouseWheel(MouseWheelEventArgs e)
+            => InputProcessor.ProcessEvent(e);
+
+        /// <inheritdoc />
+        protected override void OnLostMouseCapture(MouseEventArgs e)
+            => InputProcessor.ProcessEvent(e);
+
+        /// <inheritdoc />
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            InputProcessor.ProcessEvent(e);
+
+            // Release the mouse capture if all the mouse buttons are released
+            if (!InputProcessor.RequiresInputCapture && IsMouseCaptured && Mouse.RightButton == MouseButtonState.Released && Mouse.LeftButton == MouseButtonState.Released && Mouse.MiddleButton == MouseButtonState.Released)
+            {
+                ReleaseMouseCapture();
+            }
+        }
+
+        /// <inheritdoc />
+        protected override void OnKeyDown(KeyEventArgs e)
+            => InputProcessor.ProcessEvent(e);
+
+        #endregion
+
+        /// <summary>
+        /// Splits the connection at the specified location.
+        /// </summary>
+        /// <param name="splitLocation">The <see cref="Point"/> where the connection should be split.</param>
+        /// <remarks>
+        /// This method raises the <see cref="SplitEvent"/> to notify listeners. If the event is not handled,
+        /// it checks whether the <see cref="SplitCommand"/> can execute with the provided location and executes it if possible.
+        /// </remarks>
+        public void SplitAtLocation(Point splitLocation)
+        {
+            var args = new ConnectionEventArgs(DataContext)
+            {
+                RoutedEvent = SplitEvent,
+                SplitLocation = splitLocation,
+                Source = this
+            };
+
+            RaiseEvent(args);
+
+            // Raise SplitCommand if SplitEvent is not handled
+            if (!args.Handled && (SplitCommand?.CanExecute(splitLocation) ?? false))
+            {
+                SplitCommand.Execute(splitLocation);
+            }
+        }
+
+        /// <summary>
+        /// Removes the connection.
+        /// </summary>
+        /// <remarks>
+        /// This method raises the <see cref="DisconnectEvent"/> to notify listeners. If the event is not handled,
+        /// it checks whether the <see cref="DisconnectCommand"/> can execute and executes it if possible.
+        /// </remarks>
+        public void Remove()
+        {
+            var args = new ConnectionEventArgs(DataContext)
+            {
+                RoutedEvent = DisconnectEvent,
+                Source = this
+            };
+
+            RaiseEvent(args);
+
+            // Raise DisconnectCommand if DisconnectEvent is not handled
+            if (!args.Handled && (DisconnectCommand?.CanExecute(null) ?? false))
+            {
+                DisconnectCommand.Execute(null);
+            }
+        }
+
+        private Pen GetOutlinePen()
+        {
+            return _outlinePen ??= new Pen(OutlineBrush, StrokeThickness + OutlineThickness * 2d);
+        }
+
         protected override void OnRender(DrawingContext drawingContext)
         {
+            if (OutlineBrush != null)
+            {
+                drawingContext.DrawGeometry(OutlineBrush, GetOutlinePen(), DefiningGeometry);
+            }
+
             base.OnRender(drawingContext);
 
             if (!string.IsNullOrEmpty(Text))
